@@ -115,10 +115,6 @@ acpi_get_table:
     add eax, 4
     loop .find_signature
 
-    ; not found
-    mov al, '1'
-    out 0xe9, al
-
     xor eax, eax
     jmp .return
 
