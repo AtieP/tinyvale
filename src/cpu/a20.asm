@@ -89,5 +89,6 @@ a20_init:
 
 .return:
     print "a20", "Done Initializing"
+    pop eax
     popf
     ret
