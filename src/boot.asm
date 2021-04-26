@@ -176,7 +176,7 @@ boot_stage2:
 
 %include "stage2.asm"
 
-times 8192 - ($ - boot_stage2) db 0x00
+times 8192 + 512 - ($ - boot_stage2) db 0x00
 
 elf:
 incbin "../elf"

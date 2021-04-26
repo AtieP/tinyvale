@@ -28,7 +28,7 @@
 ; OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 ; OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-vbe_info_block_address: equ 0x4000
+vbe_info_block_address: equ 0x2000
 vbe_mode_info_address: equ vbe_info_block_address + 512
 
 ; Sets a video mode

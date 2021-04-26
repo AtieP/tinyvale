@@ -83,6 +83,12 @@ stivale_load:
     call acpi_get_rsdp
     mov [stivale_struct.rsdp], eax
 
+.create_memory_map:
+    ; create the memory map
+    mov [stivale_struct.memory_map_addr], dword pmm_memory_map
+    mov dx, [pmm_memory_map_entries]
+    mov [stivale_struct.memory_map_entries], dx
+
 .load_program:
     ; load the program and jump to it
     mov ebx, [stivale_elf_file]
