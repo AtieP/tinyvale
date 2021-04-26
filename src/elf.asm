@@ -227,9 +227,24 @@ elf_load_program:
     push ebx
     push ecx
     add ebx, [edx+0x04]
-    memcpy [edx+0x08], ebx, [edx+0x10]
+    memcpy [edx+0x0c], ebx, [edx+0x10]
     pop ecx
     pop ebx
+
+    ; now, check if there is some bss or something
+    ; esi and edi are not used anyways except in memcpy and memset
+    mov esi, [edx+0x10] ; file size
+    mov edi, [edx+0x14] ; memory size
+    sub edi, esi
+    jz .32_bit.next_header
+
+    ; zero it out
+    add esi, [edx+0x0c] ; physical address
+    push ax
+    push ecx
+    memset esi, 0, edi
+    pop ecx
+    pop ax
 
 .32_bit.next_header:
     add edx, [.program_header_entry_size]

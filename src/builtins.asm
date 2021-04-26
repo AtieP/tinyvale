@@ -24,7 +24,7 @@
 
 %macro memset 3
     cld
-    mov esi, %1
+    mov edi, %1
     mov al, %2
     mov ecx, %3
     rep stosb
