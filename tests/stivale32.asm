@@ -19,6 +19,7 @@ alt:
 
 next:
     pop ebx
+    pop ebx
     mov edi, [ebx+24]
     mov eax, 0xffffff
     mov ecx, 300
