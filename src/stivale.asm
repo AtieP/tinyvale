@@ -87,8 +87,8 @@ stivale_load:
     db 0xbc
 .stack: dd 0
 
-    push dword 0
     push dword stivale_struct
+    push dword 0
 
     cli
     cld
