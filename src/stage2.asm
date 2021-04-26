@@ -70,12 +70,44 @@ stage2_main:
     call gdt_init
     call a20_init
     call smp_init
+    ; Now, an ELF file may have .stivalehdr AND .stivale2hdr
+    ; to be compatible with those. If both are found, let the user choice.
     mov ebx, elf
+    mov ecx, .stivalehdr
+    xor edx, edx
+    call elf_load_section
+    test eax, eax
+    jnz .check_stivale2
+
+.load_stivale2:
+    jmp stivale2_load
+
+.load_stivale:
     jmp stivale_load
+
+.check_stivale2:
+    mov ecx, .stivale2hdr
+    call elf_load_section
+    test eax, eax
+    jz .load_stivale
+
+    print "tinyvale", "Kernel supports both stivale and stivale2. What to choose?",0x0a,"[1]: Stivale",0x0a,"[2]: Stivale2"
+    
+.poll_key:
+    in al, 0x60
+    cmp al, 0x82
+    je .load_stivale
+    cmp al, 0x83
+    je .load_stivale2
+    jmp .poll_key
+
+.stivalehdr: db ".stivalehdr",0x00
+.stivale2hdr: db ".stivale2hdr",0x00
 
 %include "builtins.asm"
 %include "elf.asm"
 %include "stivale.asm"
+%include "stivale2.asm"
 %include "tty.asm"
 %include "acpi/acpi.asm"
 %include "cpu/a20.asm"

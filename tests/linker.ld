@@ -7,6 +7,10 @@ SECTIONS {
         KEEP(*(.stivalehdr))
     }
 
+    .stivale2hdr : {
+        KEEP(*(.stivale2hdr))
+    }
+
     /* .stivale2hdr : {
         KEEP(*(.stivale2hdr))
     } */

@@ -6,6 +6,9 @@ section .stivalehdr
     .framebuffer_bpp: dw 32
     .entry_point: dq alt
 
+section .stivale2hdr
+db 1 ; dummy
+
 section .text
 global kmain
 kmain:
