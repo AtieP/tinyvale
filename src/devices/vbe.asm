@@ -38,7 +38,7 @@ bits 16
     or bx, (1 << 14) ; use linear framebuffer
     int 0x10
 
-    mov [.video_mode], ax
+    mov [.status_code], ax
     mov ebx, .protected_mode
     jmp modes_protected_mode
 
@@ -66,6 +66,8 @@ vbe_get_mode:
     pushf
 
     call vbe_get_modes
+    test eax, eax
+    jz .not_found
 
     mov [.width], bx
     mov [.height], cx

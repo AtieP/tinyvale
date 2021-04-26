@@ -14,90 +14,80 @@
 ; You should have received a copy of the GNU General Public License
 ; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-; THERE IS A LOT OF TODO HERE.
-; TODO LIST:
-; - MEMORY MAP
-; - 64 BIT
-
 ; Loads a stivale kernel
-; EBX = Full ELF file
-; This never returns, if there's an error it just panics
+; IN: EBX = Pointer to ELF file
+; OUT: This function doesn't even return, if there were any errors it just panics
 stivale_load:
-    ; Verification
-    call elf_verify_header
+    mov [stivale_elf_file], ebx
     call elf_get_bitness
-
     cmp eax, 32
-    je .32_bit
+    je .continue
 
-    panic "stivale", "64 bit kernels are not supported for now"
+    panic "stivale", "64 bit ELFs are not supported for now"
 
-.32_bit:
-
-.load_section:
-    ; Load .stivalehdr section
-    mov ecx, .section_name
+.continue:
+    ; load the stivale section
+    mov ecx, stivale_section_name
     mov edx, 24
     call elf_load_section
-
-    ; Check for errors
+    
+    ; check if it exists and size
     test eax, eax
     jz .error_no_section
-    cmp al, 1
-    je .error_small_section
-    cmp al, 2
-    je .error_big_section
-    push eax
-.create_struct:
-.create_struct.fb_check:
-    mov dx, [eax+8]
-    test dx, 1
-    jnz .create_struct.fb
-    jmp .create_struct.rsdp
 
-.create_struct.fb:
-    push ebx
+    cmp eax, 1
+    je .error_small_section
+
+    cmp eax, 2
+    je .error_big_section
+
+    ; now parse the header
+    ; place entry point in the header
+    mov edx, [eax+16]
+    mov [.entry_point], edx
+
+    ; place stack
+    mov edx, [eax]
+    mov [.stack], edx
+
+    ; framebuffer request?
+    test [eax+8], word 1
+    jnz .framebuffer
+
+    jmp .create_rsdp
+
+.framebuffer:
     mov bx, [eax+10]
     mov cx, [eax+12]
-    mov dl, [eax+14]
-    call vbe_get_mode
-    jz .error_no_mode
+    mov dx, [eax+14]
+    push eax
+    call stivale_create_fb
+    pop eax
 
-    call vbe_set_mode
-    call vbe_get_mode_info
-
-    ; indicate the presence of those
-    or [stivale_struct.flags], byte 1 << 1
-
-    ; set address, width, height, pitch, bpp
-    mov ebx, [eax+40]
-    mov [stivale_struct.framebuffer_addr], ebx
-    mov bx, [eax+18]
-    mov [stivale_struct.framebuffer_width], bx
-    mov bx, [eax+20]
-    mov [stivale_struct.framebuffer_height], bx
-    mov bx, [eax+16]
-    mov [stivale_struct.framebuffer_pitch], bx
-    mov bx, [eax+25]
-    mov [stivale_struct.framebuffer_bpp], bl
-
-    ; the mask things
-    memcpy [stivale_struct.fb_red_mask_size], [eax+31], 6
-    pop ebx
-
-.create_struct.rsdp:
-    ; Create RSDP
+.create_rsdp:
+    ; create the rsdp in the stivale struct
     call acpi_get_rsdp
     mov [stivale_struct.rsdp], eax
 
-.run_kernel:
-    ; Finally load the entire program...
+.load_program:
+    ; load the program and jump to it
+    mov ebx, [stivale_elf_file]
     call elf_load_program
-    mov [.goto_address], eax
-    pop eax
-    mov esp, [eax]
 
-    push dword 0 ; required by stivale
+    ; check if custom entry point
+    cmp [.entry_point], dword 0
+    jne .spinup
+
+    mov [.entry_point], eax
+
+.spinup:
+    call pic_disable
+
+    ; mov esp, imm32 opcode
+    db 0xbc
+.stack: dd 0
+
+    push dword 0
     push dword stivale_struct
 
     cli
@@ -110,29 +100,92 @@ stivale_load:
     xor edi, edi
     xor ebp, ebp
 
-    ; jump
-db 0xea
-.goto_address: dd 0
-dw gdt_code32_sel
+    ; far jump opcode
+    db 0xea
+.entry_point: dd 0
+    dw gdt_code32_sel
 
 .error_no_section:
-    panic "stivale", "Section .stivalehdr not found"
+    panic "stivale", "Section .stivalehdr does not exist"
 
 .error_small_section:
-    panic "stivale", "Section .stivalehdr is too small"
+    panic "stivale", "Section .stivalehdr is too small (Must be 24 bytes big)"
 
 .error_big_section:
-    panic "stivale", "Section .stivalehdr is too big"
+    panic "stivale", "Section .stivalehdr is too big (Must be 24 bytes big)"
 
-.error_no_vbe:
-    panic "stivale", "VBE is not available, or lacks functionality"
+; Creates the framebuffer fields
+; BX = Width, CX = Height, DX = BPP
+; Panics if error
+stivale_create_fb:
+    ; get video mode number. later use it to create the return struct
+    movzx dx, dl ; in stivale, the bpp field is an uint16_t. do not allows bpps like 0xffff0020
+    call vbe_get_mode
+    
+    ; no mode available?
+    test ax, ax
+    jz .error_no_mode
+
+    ; get information about it
+    push ax
+    mov bx, ax
+    call vbe_get_mode_info
+    
+    ; no mode info?
+    test eax, eax
+    jz .error_no_mode_info
+
+    ; set the extended colour information bit
+    or [stivale_struct.flags], word 1 << 1
+
+    ; save framebuffer address
+    mov edx, [eax+40]
+    mov [stivale_struct.framebuffer_addr], edx
+
+    ; save width
+    mov dx, [eax+18]
+    mov [stivale_struct.framebuffer_width], dx
+
+    ; save height
+    mov dx, [eax+20]
+    mov [stivale_struct.framebuffer_height], dx
+
+    ; save bpp
+    mov dl, [eax+25]
+    mov [stivale_struct.framebuffer_bpp], dl
+
+    ; save pitch
+    mov dx, [eax+16]
+    mov [stivale_struct.framebuffer_pitch], dx
+
+    ; save memory model
+    mov dl, [eax+27]
+    mov [stivale_struct.fb_memory_model], dl
+
+    ; and all that masks stuff
+    add eax, 31 ; point to red mask
+    memcpy stivale_struct.fb_red_mask_size, eax, 6
+
+    ; finally set that mode
+    pop bx
+    call vbe_set_mode
+    cmp ax, 0x004f
+    jne .error_set_mode
+
+    ret
 
 .error_no_mode:
-    panic "stivale", "Could not set desired resolution"
+    panic "stivale", "Could not get desired mode, or VBE is just not available."
 
-.section_name: db ".stivalehdr"
+.error_no_mode_info:
+    panic "stivale", "Could not get the desired mode's information. VBE is broken?"
 
-stivale_elf_file: dd 0
+.error_set_mode:
+    panic "stivale", "Could not set the desired mode. VBE is broken, or it doesn't support linear framebuffers?"
+
+
+stivale_section_name: db ".stivalehdr",0
+stivale_elf_file: dd 0 ; pointer to elf file
 stivale_struct:
     .cmdline: dq 0
     .memory_map_addr: dq 0
