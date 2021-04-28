@@ -53,8 +53,8 @@ bits 16
     mov di, edid_info_address
     int 0x10
 
-    cmp ax, 0x004f
-    jne .go_to_protected_mode
+    ; cmp ax, 0x004f
+    ; jne .go_to_protected_mode
 
     ; calculate width
     ; quoting the ol' good osdev wiki:
@@ -75,16 +75,18 @@ bits 16
 
     ; assume 32 bpp
     mov dl, 32
-    call vbe_get_mode
-    mov [.video_mode], ax
-    jmp .go_to_protected_mode
 
 .go_to_protected_mode:
+    push ebx
     mov ebx, .protected_mode
     jmp modes_protected_mode
 
 bits 32
 .protected_mode:
+    pop ebx
+    call vbe_get_mode
+    mov [.video_mode], ax
+
     popf
     pop edi
     pop edx
