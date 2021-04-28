@@ -69,6 +69,7 @@ stage2_main:
     print "Tinyvale -", "A tiny stivale/stivale2 bootloader"
     call gdt_init
     call a20_init
+    call pmm_init
     call smp_init
     ; Now, an ELF file may have .stivalehdr AND .stivale2hdr
     ; to be compatible with those. If both are found, let the user choice.

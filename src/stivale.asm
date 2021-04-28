@@ -195,7 +195,7 @@ stivale_create_fb:
     ret
 
 .error_no_mode:
-    panic "stivale", "Could not get desired mode, or VBE is just not available."
+    panic "stivale", "Could not get desired mode because it doesn't exist or it doesn't support a linear framebuffer, or VBE is just not available."
 
 .error_no_mode_info:
     panic "stivale", "Could not get the desired mode's information. VBE is broken?"

@@ -67,7 +67,7 @@ bits 32
 .video_mode: dw 0
 .status_code: dw 0
 
-; Returns the video mode number in AX (0 if not found) by having width, height and bpp as parameters
+; Returns the video mode number in AX (0 if not found, or it doesn't support a linear framebuffer) by having width, height and bpp as parameters
 ; BX = Width (in pixels)
 ; CX = Height (in pixels)
 ; DL = BPP (bits per pixel)
@@ -102,6 +102,10 @@ vbe_get_mode:
     cmp [eax+18], bx
     je .compare_height
     jmp .iterate_modes
+
+.test_linear_fb:
+    test [eax], byte 1 << 7
+    jz .iterate_modes
 
 .compare_height:
     mov bx, [.height]
