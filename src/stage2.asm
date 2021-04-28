@@ -94,6 +94,7 @@ stage2_main:
     print "tinyvale", "Kernel supports both stivale and stivale2. What to choose?",0x0a,"[1]: Stivale",0x0a,"[2]: Stivale2"
     
 .poll_key:
+    call ps2_wait_read
     in al, 0x60
     cmp al, 0x82
     je .load_stivale

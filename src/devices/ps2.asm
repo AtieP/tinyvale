@@ -30,22 +30,24 @@
 
 ; Polls until reading from PS/2 is available
 ps2_wait_read:
-    push eax
+    push ax
     pushf
+.poll:
     in al, 0x64
     test al, 1
-    jz ps2_wait_read
+    jz .poll
     popf
-    pop eax
+    pop ax
     ret
 
 ; Polls until writing to PS/2 is available
 ps2_wait_write:
-    push eax
+    push ax
     pushf
+.poll:
     in al, 0x64
     test al, 2
-    jnz ps2_wait_write
+    jnz .poll
     popf
-    pop eax
+    pop ax
     ret
