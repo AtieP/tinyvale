@@ -1,9 +1,9 @@
 section .stivalehdr
     .stack: dq stack.top
     .flags: dw 1
-    .framebuffer_width: dw 800
-    .framebuffer_height: dw 600
-    .framebuffer_bpp: dw 32
+    .framebuffer_width: dw 0
+    .framebuffer_height: dw 0
+    .framebuffer_bpp: dw 0
     .entry_point: dq alt
 
 section .stivale2hdr

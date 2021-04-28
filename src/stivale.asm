@@ -74,9 +74,63 @@ stivale_load:
     mov bx, [eax+10]
     mov cx, [eax+12]
     mov dx, [eax+14]
-    push eax
+    test bx, bx
+    jz .framebuffer.edid
+    test cx, cx
+    jz .framebuffer.edid
+    test dx, dx
+    jz .framebuffer.edid
+
+    call vbe_get_mode
+    mov bx, ax
     call stivale_create_fb
-    pop eax
+    jmp .create_rsdp
+
+.framebuffer.edid:
+    ; supported?
+    call edid_get_resolution
+    test ax, ax
+    jz .framebuffer.fallout_1
+
+    mov bx, ax
+    call stivale_create_fb
+    jmp .create_rsdp
+
+.framebuffer.fallout_1:
+    mov bx, 1024
+    mov cx, 768
+    mov dl, 32
+    call vbe_get_mode
+    test ax, ax
+    jz .framebuffer.fallout_2
+    mov bx, ax
+    call stivale_create_fb
+    jmp .create_rsdp
+
+.framebuffer.fallout_2:
+    mov bx, 800
+    mov cx, 600
+    mov dl, 32
+    call vbe_get_mode
+    test ax, ax
+    jz .framebuffer.fallout_3
+    mov bx, ax
+    call stivale_create_fb
+    jmp .create_rsdp
+
+.framebuffer.fallout_3:
+    mov bx, 640
+    mov cx, 480
+    mov dl, 32
+    call vbe_get_mode
+    test ax, ax
+    jz .framebuffer.panic
+    mov bx, ax
+    call stivale_create_fb
+    jmp .create_rsdp
+
+.framebuffer.panic:
+    panic "stivale", "VBE is not available!"
 
 .create_rsdp:
     ; create the rsdp in the stivale struct
@@ -135,25 +189,15 @@ stivale_load:
     panic "stivale", "Section .stivalehdr is too big (Must be 24 bytes big)"
 
 ; Creates the framebuffer fields
-; BX = Width, CX = Height, DX = BPP
+; BX = Mode number
 ; Panics if error
 stivale_create_fb:
-    ; get video mode number. later use it to create the return struct
-    movzx dx, dl ; in stivale, the bpp field is an uint16_t. do not allows bpps like 0xffff0020
-    call vbe_get_mode
-    
-    ; no mode available?
-    test ax, ax
-    jz .error_no_mode
+    push eax
+    push ebx
+    push edx
+    pushf
 
-    ; get information about it
-    push ax
-    mov bx, ax
     call vbe_get_mode_info
-    
-    ; no mode info?
-    test eax, eax
-    jz .error_no_mode_info
 
     ; set the extended colour information bit
     or [stivale_struct.flags], word 1 << 1
@@ -186,23 +230,19 @@ stivale_create_fb:
     add eax, 31 ; point to red mask
     memcpy stivale_struct.fb_red_mask_size, eax, 6
 
-    ; finally set that mode
-    pop bx
+    ; finally set that mode (it's in bx)
     call vbe_set_mode
     cmp ax, 0x004f
     jne .error_set_mode
 
+    popf
+    pop edx
+    pop ebx
+    pop eax
     ret
 
-.error_no_mode:
-    panic "stivale", "Could not get desired mode because it doesn't exist or it doesn't support a linear framebuffer, or VBE is just not available."
-
-.error_no_mode_info:
-    panic "stivale", "Could not get the desired mode's information. VBE is broken?"
-
 .error_set_mode:
-    panic "stivale", "Could not set the desired mode. VBE is broken, or it doesn't support linear framebuffers?"
-
+    panic "stivale", "Could not set the desired mode, even if there's information about it. VBE is broken?"
 
 stivale_section_name: db ".stivalehdr",0
 stivale_elf_file: dd 0 ; pointer to elf file

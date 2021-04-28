@@ -118,6 +118,7 @@ stage2_main:
 %include "cpu/modes.asm"
 %include "cpu/smp_trampoline.asm"
 %include "cpu/smp.asm"
+%include "devices/edid.asm"
 %include "devices/pic.asm"
 %include "devices/ps2.asm"
 %include "devices/vbe.asm"
