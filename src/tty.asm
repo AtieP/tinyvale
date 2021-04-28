@@ -69,6 +69,13 @@ tty_putc:
     push edx
     pushf
 
+%ifdef __QEMU__
+    push ax
+    mov al, bl
+    out 0xe9, al
+    pop ax
+%endif
+
     mov al, [tty_gfx]
     jz .vga
 
