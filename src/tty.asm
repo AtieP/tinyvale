@@ -89,7 +89,7 @@ tty_putc:
 
     inc word [tty_pos_x]
     mov ax, [tty_cols]
-    cmp [tty_pos_x], word tty_cols
+    cmp [tty_pos_x], word ax
     je .newline
 
 .check_scroll:
