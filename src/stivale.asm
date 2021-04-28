@@ -156,6 +156,7 @@ stivale_load:
 
 .spinup:
     call pic_disable
+    call tty_cls
 
     ; mov esp, imm32 opcode
     db 0xbc

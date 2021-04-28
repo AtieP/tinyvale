@@ -32,6 +32,7 @@ pmm_memory_map: equ 0x3000
 pmm_memory_map_entries: dw 0
 
 ; Initializes the memory map and sanitizes them
+; Panics if no memory map is available
 pmm_init:
     push ebx
     push ecx
@@ -58,7 +59,7 @@ bits 16
 
     jc .finish
     test ebx, ebx
-    jc .finish
+    jz .finish
 
     inc word [pmm_memory_map_entries]
     cmp [pmm_memory_map_entries], word 512
@@ -73,10 +74,51 @@ bits 16
 
 bits 32
 .protected_mode:
+    print "pmm", "Sanitizing entries"
+    call pmm_sanitize
     print "pmm", "Done initializing"
     popf
     pop edi
     pop edx
     pop ecx
     pop ebx
+    ret
+
+; Sanitizes the memory map
+; There's no input nor output registers
+pmm_sanitize:
+    ; sort entries
+    ; use bubble sort
+    mov eax, pmm_memory_map
+    movzx ecx, word [pmm_memory_map_entries]
+    mov ebx, ecx
+
+.loop1:
+    push ebx
+    push ecx
+    sub ebx, ecx
+    mov ecx, ebx
+    inc ecx
+
+.loop2:
+    mov edx, [eax] ; get base of current entry
+    cmp [eax+24], edx ; cmp(base of next entry, base of current entry)
+    add eax, 24
+    loop .loop2
+    jmp .continue
+
+.swap:
+    push ecx
+    mov edx, eax
+    add edx, 24
+    memcpy eax, edx, 24
+    pop ecx
+    add eax, 24
+    loop .loop2
+
+.continue:
+    pop ecx
+    pop ebx
+    mov eax, pmm_memory_map ; repeat
+    loop .loop1
     ret
