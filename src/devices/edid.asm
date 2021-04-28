@@ -53,25 +53,25 @@ bits 16
     mov di, edid_info_address
     int 0x10
 
-    ; cmp ax, 0x004f
-    ; jne .go_to_protected_mode
+    cmp ax, 0x004f
+    jne .go_to_protected_mode
 
     ; calculate width
     ; quoting the ol' good osdev wiki:
     ; x = edid[0x38] | ((int) (edid[0x3A] & 0xF0) << 4);
     ; y = edid[0x3B] | ((int) (edid[0x3D] & 0xF0) << 4);
     xor bx, bx
-    mov bl, [edid_info_address + 0x3a]
-    and bl, 0xf0
-    shl bl, 4
-    or bl, [edid_info_address + 0x38]
+    mov bx, [edid_info_address + 0x3a]
+    and bx, 0xf0
+    shl bx, 4
+    or bx, [edid_info_address + 0x38]
 
     ; calculate height
     xor cx, cx
-    mov cl, [edid_info_address + 0x3d]
-    and cl, 0xf0
-    shl cl, 4
-    or cl, [edid_info_address + 0x3b]
+    mov cx, [edid_info_address + 0x3d]
+    and cx, 0xf0
+    shl cx, 4
+    or cx, [edid_info_address + 0x3b]
 
     ; assume 32 bpp
     mov dl, 32
