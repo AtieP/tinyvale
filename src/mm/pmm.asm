@@ -57,11 +57,12 @@ bits 16
     mov edx, 0x534d4150
     int 0x15
 
+    inc word [pmm_memory_map_entries]
+
     jc .finish
     test ebx, ebx
     jz .finish
 
-    inc word [pmm_memory_map_entries]
     cmp [pmm_memory_map_entries], word 512
     je .finish
 
@@ -91,34 +92,49 @@ pmm_sanitize:
     ; use bubble sort
     mov eax, pmm_memory_map
     movzx ecx, word [pmm_memory_map_entries]
-    mov ebx, ecx
+    dec ecx
 
-.loop1:
-    push ebx
+.loop_1:
     push ecx
-    sub ebx, ecx
-    mov ecx, ebx
-    inc ecx
 
 .loop2:
-    mov edx, [eax] ; get base of current entry
-    cmp [eax+24], edx ; cmp(base of next entry, base of current entry)
+    mov edx, [eax+24]
+    cmp edx, [eax]
+    jb .swap
     add eax, 24
     loop .loop2
     jmp .continue
 
 .swap:
-    push ecx
-    mov edx, eax
-    add edx, 24
-    memcpy eax, edx, 24
-    pop ecx
+    ; maybe make this better :^)
+    ; swap base low uint32_t
+    xchg [eax], edx
+    mov [eax+24], edx
+    ; swap base high uint32_t
+    mov edx, [eax+28]
+    xchg [eax+4], edx
+    mov [eax+28], edx
+    ; swap limit low uint32_t
+    mov edx, [eax+32]
+    xchg [eax+8], edx
+    mov [eax+32], edx
+    ; swap limit high uint32_t
+    mov edx, [eax+36]
+    xchg [eax+12], edx
+    mov [eax+36], edx
+    ; swap entry type uint32_t
+    mov edx, [eax+40]
+    xchg [eax+16], edx
+    mov [eax+40], edx
+    ; swap reserved value uint32_t
+    mov edx, [eax+44]
+    xchg [eax+20], edx
+    mov [eax+44], edx
     add eax, 24
     loop .loop2
 
 .continue:
     pop ecx
-    pop ebx
-    mov eax, pmm_memory_map ; repeat
-    loop .loop1
+    mov eax, pmm_memory_map
+    loop .loop_1
     ret
