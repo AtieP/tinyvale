@@ -137,6 +137,16 @@ stivale_load:
     call acpi_get_rsdp
     mov [stivale_struct.rsdp], eax
 
+.create_smbios:
+    ; create the pointers to the smbios in the stivale struct
+    or [stivale_struct.flags], word 1 << 2
+
+    call smbios_get_32
+    mov [stivale_struct.smbios_entry_32], eax
+
+    call smbios_get_64
+    mov [stivale_struct.smbios_entry_64], eax
+
 .create_memory_map:
     ; create the memory map
     mov [stivale_struct.memory_map_addr], dword pmm_memory_map
@@ -268,3 +278,5 @@ stivale_struct:
     .fb_green_mask_shift: db 0
     .fb_blue_mask_size: db 0
     .fb_blue_mask_shift: db 0
+    .smbios_entry_32: dq 0
+    .smbios_entry_64: dq 0
