@@ -145,4 +145,34 @@ pmm_sanitize:
     pop ecx
     mov eax, pmm_memory_map
     loop .sort
+
+    ; now, align bootloader reclaimable and usable
+    ; entries bases and lengths to 4096
+    movzx ecx, word [pmm_memory_map_entries]
+    dec ecx
+
+.align.check:
+    cmp [eax+16], dword 1 ; usable
+    je .align.align
+
+    cmp [eax+16], dword 0x1000 ; bootloader reclaimable
+    je .align.align
+
+    jmp .align.continue
+
+.align.align:
+    mov edx, 4095
+    not edx
+
+    ; align up base to 4096
+    add [eax], dword 4095
+    and [eax], edx
+
+    ; align down length to 4096
+    and [eax+8], edx
+
+.align.continue:
+    add eax, 24
+    loop .align.check
+
     ret
