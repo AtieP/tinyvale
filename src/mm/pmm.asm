@@ -94,26 +94,26 @@ pmm_sanitize:
     movzx ecx, word [pmm_memory_map_entries]
     dec ecx
 
-.loop_1:
+.sort:
     push ecx
 
-.loop2:
+.sort.check:
     ; bases are 64 bit
     ; check higher dword
     mov edx, [eax+28]
     cmp edx, [eax+4]
-    ja .swap
+    ja .sort.swap
 
     ; check lower dword
     mov edx, [eax+24]
     cmp edx, [eax]
-    jb .swap
+    jb .sort.swap
 
     add eax, 24
-    loop .loop2
-    jmp .continue
+    loop .sort.check
+    jmp .sort.continue
 
-.swap:
+.sort.swap:
     ; maybe make this better :^)
     ; swap base low uint32_t
     xchg [eax], edx
@@ -139,10 +139,10 @@ pmm_sanitize:
     xchg [eax+20], edx
     mov [eax+44], edx
     add eax, 24
-    loop .loop2
+    loop .sort.check
 
-.continue:
+.sort.continue:
     pop ecx
     mov eax, pmm_memory_map
-    loop .loop_1
+    loop .sort
     ret
