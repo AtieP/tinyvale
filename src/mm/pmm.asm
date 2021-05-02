@@ -98,9 +98,17 @@ pmm_sanitize:
     push ecx
 
 .loop2:
+    ; bases are 64 bit
+    ; check higher dword
+    mov edx, [eax+28]
+    cmp edx, [eax+4]
+    ja .swap
+
+    ; check lower dword
     mov edx, [eax+24]
     cmp edx, [eax]
     jb .swap
+
     add eax, 24
     loop .loop2
     jmp .continue
