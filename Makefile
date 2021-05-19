@@ -4,7 +4,7 @@ ASFLAGS = -f bin
 all:
 	$(AS) $(ASFLAGS) src/boot.asm -o tinyvale -I src/ -D __QEMU__
 
-run:
+run: stivale_32
 	qemu-system-x86_64 tinyvale -debugcon stdio -no-reboot -no-shutdown -d int
 
 stivale_32:
